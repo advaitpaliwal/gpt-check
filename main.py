@@ -1,6 +1,9 @@
 import openai
+import nltk
 from nltk import word_tokenize
 from sentence_transformers import SentenceTransformer, util
+
+nltk.download('punkt')
 
 class PlagiarismDetector:
     openai.api_key = "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"

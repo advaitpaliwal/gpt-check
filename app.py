@@ -37,6 +37,7 @@ def detect_plagiarism():
                 st.error("Your answer is plagiarized!")
 
 
+
 def main():
     st.title("GPT Check ✅")
     with st.sidebar:
