@@ -16,7 +16,7 @@ class PlagiarismDetector:
         response = openai.Completion.create(
             engine="text-davinci-003",
             prompt=self.prompt,
-            max_tokens=4000,
+            max_tokens=1024,
             temperature=self.temperature,
             n=self.n,
         )
