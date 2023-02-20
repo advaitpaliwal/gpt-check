@@ -2,12 +2,13 @@ import openai
 import nltk
 from nltk import word_tokenize
 from sentence_transformers import SentenceTransformer, util
+from dotenv import load_dotenv
 
 nltk.download('punkt')
 
 class PlagiarismDetector:
-    openai.api_key = "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"
     def __init__(self, prompt, student_answer, n, temperature):
+        openai.api_key = self.get_environment_variable("openai_api_key")
         self.prompt = prompt
         self.student_answer = student_answer
         self.n = n
@@ -15,6 +16,9 @@ class PlagiarismDetector:
         self.generated_answers = self.generate_answers()
         self.sbert_model = SentenceTransformer('stsb-roberta-large')
 
+    def get_environment_variable(self, variable_name):
+        load_dotenv()
+        return os.getenv(variable_name)
     def generate_answers(self):
         response = openai.Completion.create(
             engine="text-davinci-003",
