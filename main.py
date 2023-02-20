@@ -1,3 +1,4 @@
+import os
 import openai
 import nltk
 from nltk import word_tokenize
