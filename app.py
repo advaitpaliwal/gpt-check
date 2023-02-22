@@ -3,43 +3,8 @@ from main import PlagiarismDetector
 
 st.set_page_config(page_title="GPT Check", page_icon="✅", layout="wide")
 
-def get_user_input():
-    st.session_state["prompt"] = st.text_area("**Enter the prompt:**", max_chars=1000)
-    st.session_state["student_answer"] = st.text_area("**Enter the answer:**", height=300)
-    st.session_state["n"] = st.slider("**n:**", 1, 10, 5, 1)
-    st.session_state["temperature"] = st.slider("**Temperature:**", 0.0, 1.0, 0.5, 0.1)
 
-
-def detect_plagiarism():
-    if st.button("Detect"):
-        with st.spinner("Processing…"):
-            st.session_state["detector"] = PlagiarismDetector(st.session_state["prompt"],
-                                                              st.session_state["student_answer"], st.session_state["n"],
-                                                              st.session_state["temperature"])
-            results = st.session_state["detector"].check_plagiarism()
-            st.header("Similarity Results:")
-            i = 1
-            avg_overall_similarity = 0
-            for answer, similarity in results.items():
-                jaccard_similarity = similarity['jaccard']
-                cosine_similarity = similarity['cosine']
-                overall_similarity = similarity['overall']
-                with st.expander(f"{round(overall_similarity * 100, 2)}%"):
-                    st.write("**Cosine:**", f"`{round(cosine_similarity * 100, 2)}%`")
-                    st.write("**Jaccard:**", f"`{round(jaccard_similarity * 100, 2)}%`")
-                    st.markdown(answer)
-                    i += 1
-                    avg_overall_similarity += overall_similarity
-            avg_overall_similarity /= len(results)
-            if avg_overall_similarity < 0.6:
-                st.success("Your answer is unique!")
-            else:
-                st.error("Your answer is plagiarized!")
-
-
-
-def main():
-    st.title("GPT Check ✅")
+def show_sidebar():
     with st.sidebar:
         st.header("**About**")
         st.write(
@@ -55,8 +20,55 @@ def main():
             "Jaccard similarity is a measure of how similar two pieces of text are based on number of common words.")
         st.subheader("**What is cosine similarity?**")
         st.write("Cosine similarity is a measure of how similar two pieces of text are based on semantics.")
-    get_user_input()
-    detect_plagiarism()
+
+
+def get_user_input():
+    prompt = st.text_area("**Enter the prompt:**", max_chars=1000)
+    student_answer = st.text_area("**Enter the answer:**", height=250)
+    n = st.slider("**n:**", 1, 10, 5, 1)
+    temperature = st.slider("**Temperature:**", 0.0, 1.0, 0.5, 0.1)
+    return prompt, student_answer, n, temperature
+
+
+def detect_plagiarism(prompt, student_answer, n, temperature):
+    if prompt == "":
+        return st.warning("Please enter a prompt.")
+    if student_answer == "":
+        return st.warning("Please enter an answer.")
+    # add character minimum to promopt and answer to avoid errors
+    if len(prompt) < 10:
+        return st.warning("Please enter a longer prompt.")
+    if len(student_answer) < 250:
+        return st.warning("Please enter a longer answer.")
+    with st.spinner("Processing…"):
+        detector = PlagiarismDetector(prompt, student_answer, n, temperature)
+        results = detector.check_plagiarism()
+        st.header("Similarity Results:")
+        i = 1
+        avg_overall_similarity = 0
+        for answer, similarity in results.items():
+            jaccard_similarity = similarity['jaccard']
+            cosine_similarity = similarity['cosine']
+            overall_similarity = similarity['overall']
+            with st.expander(f"{round(overall_similarity * 100, 2)}%"):
+                st.write("**Cosine:**", f"`{round(cosine_similarity * 100, 2)}%`")
+                st.write("**Jaccard:**", f"`{round(jaccard_similarity * 100, 2)}%`")
+                st.markdown(answer)
+                i += 1
+                avg_overall_similarity += overall_similarity
+        avg_overall_similarity /= len(results)
+        if avg_overall_similarity < 0.6:
+            st.success("Your answer is unique!")
+        else:
+            st.error("Your answer is plagiarized!")
+
+
+def main():
+    st.title("GPT Check ✅")
+    show_sidebar()
+    prompt, student_answer, n, temperature = get_user_input()
+    if st.button("Detect"):
+        detect_plagiarism(prompt, student_answer, n, temperature)
 
 
 if __name__ == "__main__":
