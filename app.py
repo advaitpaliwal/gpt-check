@@ -3,6 +3,7 @@ from main import PlagiarismDetector
 
 st.set_page_config(page_title="GPT Check", page_icon="✅", layout="wide")
 
+
 def show_sidebar():
     with st.sidebar:
         st.header("**About**")

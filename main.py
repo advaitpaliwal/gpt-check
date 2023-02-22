@@ -5,7 +5,7 @@ from nltk import word_tokenize
 from sentence_transformers import SentenceTransformer, util
 from dotenv import load_dotenv
 
-nltk.download('punkt')
+#nltk.download('punkt')
 
 
 class PlagiarismDetector:
