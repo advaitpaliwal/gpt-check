@@ -28,7 +28,7 @@ def get_user_input():
     temperature = st.slider("**Temperature:**", 0.0, 1.0, 0.5, 0.1)
     return prompt, student_answer, n, temperature
 
-
+@st.cache(suppress_st_warning=True)
 def check_plagiarism(prompt, student_answer, n, temperature):
     if prompt == "":
         return st.warning("Please enter a prompt.")
