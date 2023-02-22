@@ -1,8 +1,8 @@
-import csv
 import streamlit as st
 from main import PlagiarismDetector
 
 st.set_page_config(page_title="GPT Check", page_icon="✅", layout="wide")
+
 
 def show_sidebar():
     with st.sidebar:
@@ -29,6 +29,7 @@ def get_user_input():
     temperature = st.slider("**Temperature:**", 0.0, 1.0, 0.5, 0.1)
     return prompt, student_answer, n, temperature
 
+
 def check_plagiarism(prompt, student_answer, n, temperature):
     if prompt == "":
         return st.warning("Please enter a prompt.")
@@ -40,34 +41,26 @@ def check_plagiarism(prompt, student_answer, n, temperature):
         return st.warning("Please enter an answer with at least 250 characters.")
     with st.spinner("Processing…"):
         detector = PlagiarismDetector(prompt, student_answer, n, temperature)
-        with open('results.csv', 'w', newline='') as csvfile:
-            writer = csv.writer(csvfile)
-            writer.writerow(['answer', 'jaccard', 'cosine', 'overall'])
-            for answer, similarity in detector.check_plagiarism().items():
-                jaccard_similarity = similarity['jaccard']
-                cosine_similarity = similarity['cosine']
-                overall_similarity = similarity['overall']
-                writer.writerow([answer, jaccard_similarity, cosine_similarity, overall_similarity])
-        with open('results.csv', 'r') as csvfile:
-            reader = csv.DictReader(csvfile)
-            st.header("Similarity Results:")
-            i = 1
-            avg_overall_similarity = 0
-            for row in reader:
-                jaccard_similarity = float(row['jaccard'])
-                cosine_similarity = float(row['cosine'])
-                overall_similarity = float(row['overall'])
-                with st.expander(f"{round(overall_similarity * 100, 2)}%"):
-                    st.write("**Cosine:**", f"`{round(cosine_similarity * 100, 2)}%`")
-                    st.write("**Jaccard:**", f"`{round(jaccard_similarity * 100, 2)}%`")
-                    st.markdown(row['answer'])
-                    i += 1
-                    avg_overall_similarity += overall_similarity
-        avg_overall_similarity /= i-1
+        results = detector.check_plagiarism()
+        st.header("Similarity Results:")
+        i = 1
+        avg_overall_similarity = 0
+        for answer, similarity in results.items():
+            jaccard_similarity = similarity['jaccard']
+            cosine_similarity = similarity['cosine']
+            overall_similarity = similarity['overall']
+            with st.expander(f"{round(overall_similarity * 100, 2)}%"):
+                st.write("**Cosine:**", f"`{round(cosine_similarity * 100, 2)}%`")
+                st.write("**Jaccard:**", f"`{round(jaccard_similarity * 100, 2)}%`")
+                st.markdown(answer)
+                i += 1
+                avg_overall_similarity += overall_similarity
+        avg_overall_similarity /= len(results)
         if avg_overall_similarity < 0.6:
             st.success("Your answer is unique!")
         else:
             st.error("Your answer is plagiarized!")
+
 
 def main():
     st.title("GPT Check ✅")

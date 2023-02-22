@@ -9,13 +9,13 @@ nltk.download('punkt')
 
 
 class PlagiarismDetector:
+    cache = {}
     def __init__(self, prompt, student_answer, n, temperature):
         openai.api_key = self.get_environment_variable("openai_api_key")
         self.prompt = prompt
         self.student_answer = student_answer
         self.n = n
         self.temperature = temperature
-        self.generated_answers = self.generate_answers()
         self.sbert_model = SentenceTransformer('stsb-roberta-large')
 
     @staticmethod
@@ -24,6 +24,10 @@ class PlagiarismDetector:
         return os.getenv(variable_name)
 
     def generate_answers(self):
+        cache_key = f"{self.prompt}|{self.n}|{self.temperature}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
         response = openai.Completion.create(
             engine="text-davinci-003",
             prompt=self.prompt,
@@ -31,15 +35,28 @@ class PlagiarismDetector:
             temperature=self.temperature,
             n=self.n,
         )
-        return [response_text["text"].strip() for response_text in response["choices"]]
+        generated_answers = [response_text["text"].strip() for response_text in response["choices"]]
+        self.cache[cache_key] = generated_answers
+        return generated_answers
 
     @staticmethod
     def get_embedding(text, model):
         return model.encode(text)
 
-    @staticmethod
-    def get_cosine_similarity(embedding1, embedding2):
-        return util.pytorch_cos_sim(embedding1, embedding2).item()
+    def get_similarity(self, answer):
+        cache_key = f"{self.prompt}|{self.student_answer}|{answer}"
+        if cache_key in self.cache:
+            return self.cache[cache_key]
+
+        answer_sbert_embedding = self.get_embedding(answer, self.sbert_model)
+        query_sbert_embedding = self.get_embedding(self.student_answer, self.sbert_model)
+
+        cosine_similarity = util.pytorch_cos_sim(answer_sbert_embedding, query_sbert_embedding).item()
+        jaccard_similarity = self.jaccard_similarity(answer, self.student_answer)
+        overall_similarity = self.get_overall_similarity(cosine_similarity, jaccard_similarity)
+
+        self.cache[cache_key] = {"cosine": cosine_similarity, "jaccard": jaccard_similarity, "overall": overall_similarity}
+        return self.cache[cache_key]
 
     @staticmethod
     def jaccard_similarity(s1, s2):
@@ -54,29 +71,9 @@ class PlagiarismDetector:
         return cosine_similarity * 0.7 + jaccard_similarity * 0.3
 
     def check_plagiarism(self):
-        query_sbert_embedding = self.get_embedding(
-            self.student_answer,
-            self.sbert_model
-        )
+        generated_answers = self.generate_answers()
         results = {}
-        for answer in self.generated_answers:
-            if answer in results:
-                continue
-            answer_sbert_embedding = self.get_embedding(
-                answer,
-                self.sbert_model
-            )
-            cosine_similarity = self.get_cosine_similarity(answer_sbert_embedding, query_sbert_embedding)
-            jaccard_similarity = self.jaccard_similarity(answer, self.student_answer)
-            overall_similarity = self.get_overall_similarity(cosine_similarity, jaccard_similarity)
-            results[answer] = {"cosine": cosine_similarity, "jaccard": jaccard_similarity,
-                               "overall": overall_similarity}
+        for answer in generated_answers:
+            similarity = self.get_similarity(answer)
+            results[answer] = similarity
         return {k: v for k, v in sorted(results.items(), key=lambda item: item[1]['overall'], reverse=True)}
-
-    def clear_memory(self):
-        self.prompt = None
-        self.student_answer = None
-        self.n = None
-        self.temperature = None
-        self.generated_answers = None
-        self.sbert_model = None
