@@ -72,3 +72,11 @@ class PlagiarismDetector:
             results[answer] = {"cosine": cosine_similarity, "jaccard": jaccard_similarity,
                                "overall": overall_similarity}
         return {k: v for k, v in sorted(results.items(), key=lambda item: item[1]['overall'], reverse=True)}
+
+    def clear_memory(self):
+        self.prompt = None
+        self.student_answer = None
+        self.n = None
+        self.temperature = None
+        self.generated_answers = None
+        self.sbert_model = None

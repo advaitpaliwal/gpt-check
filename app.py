@@ -24,7 +24,7 @@ def show_sidebar():
 def get_user_input():
     prompt = st.text_area("**Enter the prompt:**", max_chars=1000)
     student_answer = st.text_area("**Enter the answer:**", height=250)
-    n = st.slider("**n:**", 1, 10, 3, 1)
+    n = st.slider("**n:**", 1, 5, 3, 1)
     temperature = st.slider("**Temperature:**", 0.0, 1.0, 0.5, 0.1)
     return prompt, student_answer, n, temperature
 
@@ -58,7 +58,7 @@ def check_plagiarism(prompt, student_answer, n, temperature):
             st.success("Your answer is unique!")
         else:
             st.error("Your answer is plagiarized!")
-
+        del detector
 
 def main():
     st.title("GPT Check ✅")
