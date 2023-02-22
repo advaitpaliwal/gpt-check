@@ -3,7 +3,6 @@ from main import PlagiarismDetector
 
 st.set_page_config(page_title="GPT Check", page_icon="✅", layout="wide")
 
-
 def show_sidebar():
     with st.sidebar:
         st.header("**About**")
@@ -25,21 +24,20 @@ def show_sidebar():
 def get_user_input():
     prompt = st.text_area("**Enter the prompt:**", max_chars=1000)
     student_answer = st.text_area("**Enter the answer:**", height=250)
-    n = st.slider("**n:**", 1, 10, 5, 1)
+    n = st.slider("**n:**", 1, 10, 3, 1)
     temperature = st.slider("**Temperature:**", 0.0, 1.0, 0.5, 0.1)
     return prompt, student_answer, n, temperature
 
 
-def detect_plagiarism(prompt, student_answer, n, temperature):
+def check_plagiarism(prompt, student_answer, n, temperature):
     if prompt == "":
         return st.warning("Please enter a prompt.")
     if student_answer == "":
         return st.warning("Please enter an answer.")
-    # add character minimum to promopt and answer to avoid errors
     if len(prompt) < 10:
-        return st.warning("Please enter a longer prompt.")
+        return st.warning("Please enter a prompt with at least 10 characters.")
     if len(student_answer) < 250:
-        return st.warning("Please enter a longer answer.")
+        return st.warning("Please enter an answer with at least 250 characters.")
     with st.spinner("Processing…"):
         detector = PlagiarismDetector(prompt, student_answer, n, temperature)
         results = detector.check_plagiarism()
@@ -68,7 +66,7 @@ def main():
     show_sidebar()
     prompt, student_answer, n, temperature = get_user_input()
     if st.button("Detect"):
-        detect_plagiarism(prompt, student_answer, n, temperature)
+        check_plagiarism(prompt, student_answer, n, temperature)
 
 
 if __name__ == "__main__":
