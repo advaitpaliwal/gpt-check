@@ -39,12 +39,14 @@ def check_plagiarism(prompt, student_answer, n, temperature):
         return st.warning("Please enter a prompt with at least 10 characters.")
     if len(student_answer) < 250:
         return st.warning("Please enter an answer with at least 250 characters.")
-    with st.spinner("Processing…"):
+    with st.spinner("Initializing modules..."):
         detector = PlagiarismDetector(prompt, student_answer, n, temperature)
+    with st.spinner("Processing request..."):
         try:
             generated_answers = detector.generate_answers()
         except Exception as e:
-            return st.error(e)
+            st.error(e)
+            st.stop()
         results = detector.check_plagiarism(generated_answers)
         st.header("Similarity Results:")
         i = 1
