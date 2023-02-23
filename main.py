@@ -56,8 +56,9 @@ class PlagiarismDetector:
             raise "Rate limit exceeded. Please try again later."
 
     def get_embedding(self, text, model):
-        tokens = [w.lower() for w in word_tokenize(text) if w.lower() not in self.stop_words]
+        tokens = [w.lower() for w in word_tokenize(text) if len(w) > 1 and w.lower() not in self.stop_words]
         filtered_text = ' '.join(tokens)
+        print(filtered_text)
         return model.encode(filtered_text)
 
     def get_similarity(self, answer):
@@ -77,8 +78,8 @@ class PlagiarismDetector:
         return self.cache[cache_key]
 
     def jaccard_similarity(self, s1, s2):
-        set1 = set(w.lower() for w in word_tokenize(s1) if w.lower() not in self.stop_words)
-        set2 = set(w.lower() for w in word_tokenize(s2) if w.lower() not in self.stop_words)
+        set1 = set(w.lower() for w in word_tokenize(s1) if len(w) > 1 and w.lower() not in self.stop_words)
+        set2 = set(w.lower() for w in word_tokenize(s2) if len(w) > 1 and w.lower() not in self.stop_words)
         intersection = len(set1 & set2)
         union = len(set1 | set2)
         return intersection / union if union != 0 else 0
