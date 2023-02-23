@@ -1,7 +1,7 @@
 import streamlit as st
 from main import PlagiarismDetector
 
-st.set_page_config(page_title="GPT Check", page_icon="✅", layout="wide")
+st.set_page_config(page_title="GPTCheck", page_icon="✅", layout="wide")
 
 
 def show_sidebar():
@@ -64,7 +64,7 @@ def check_plagiarism(prompt, student_answer, n, temperature):
 
 
 def main():
-    st.title("GPT Check ✅")
+    st.title("GPTCheck ✅")
     show_sidebar()
     prompt, student_answer, n, temperature = get_user_input()
     if st.button("Detect"):

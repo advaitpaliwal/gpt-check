@@ -55,9 +55,10 @@ class PlagiarismDetector:
         except RateLimitError:
             raise "Rate limit exceeded. Please try again later."
 
-    @staticmethod
-    def get_embedding(text, model):
-        return model.encode(text)
+    def get_embedding(self, text, model):
+        tokens = [w.lower() for w in word_tokenize(text) if w.lower() not in self.stop_words]
+        filtered_text = ' '.join(tokens)
+        return model.encode(filtered_text)
 
     def get_similarity(self, answer):
         cache_key = f"{self.prompt}|{self.student_answer}|{answer}"
