@@ -56,10 +56,7 @@ def check_plagiarism(prompt, student_answer, n, temperature):
                 i += 1
                 avg_overall_similarity += overall_similarity
         avg_overall_similarity /= len(results)
-        if avg_overall_similarity < 0.6:
-            st.success("Your answer is unique!")
-        else:
-            st.error("Your answer is plagiarized!")
+        st.info(f"Average similarity: {round(avg_overall_similarity * 100, 2)}%")
 
 
 def main():
