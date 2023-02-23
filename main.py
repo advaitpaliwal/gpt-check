@@ -5,11 +5,11 @@ from nltk import word_tokenize
 from sentence_transformers import SentenceTransformer, util
 from dotenv import load_dotenv
 from openai.error import RateLimitError
+from nltk.corpus import stopwords
 
 
 class PlagiarismDetector:
     cache = {}
-
     def __init__(self, prompt, student_answer, n, temperature):
         openai.api_key = self.get_environment_variable("openai_api_key")
         self.prompt = prompt
@@ -17,12 +17,19 @@ class PlagiarismDetector:
         self.n = n
         self.temperature = temperature
         self.sbert_model = self.cache_model('stsb-roberta-large')
+        self.stop_words = self.cache_stopwords()
 
     def cache_model(self, model_name):
         if model_name not in self.cache:
             nltk.download('punkt')
             self.cache[model_name] = SentenceTransformer(model_name)
         return self.cache[model_name]
+
+    def cache_stopwords(self):
+        if "stopwords" not in self.cache:
+            nltk.download('stopwords')
+            self.cache["stopwords"] = set(stopwords.words('english'))
+        return self.cache["stopwords"]
 
     @staticmethod
     def get_environment_variable(variable_name):
@@ -68,10 +75,9 @@ class PlagiarismDetector:
                                  "overall": overall_similarity}
         return self.cache[cache_key]
 
-    @staticmethod
-    def jaccard_similarity(s1, s2):
-        set1 = set(word_tokenize(s1.lower()))
-        set2 = set(word_tokenize(s2.lower()))
+    def jaccard_similarity(self, s1, s2):
+        set1 = set(w.lower() for w in word_tokenize(s1) if w.lower() not in self.stop_words)
+        set2 = set(w.lower() for w in word_tokenize(s2) if w.lower() not in self.stop_words)
         intersection = len(set1 & set2)
         union = len(set1 | set2)
         return intersection / union if union != 0 else 0
