@@ -5,9 +5,6 @@ from nltk import word_tokenize
 from sentence_transformers import SentenceTransformer, util
 from dotenv import load_dotenv
 
-nltk.download('punkt')
-
-
 class PlagiarismDetector:
     cache = {}
     def __init__(self, prompt, student_answer, n, temperature):
@@ -16,7 +13,12 @@ class PlagiarismDetector:
         self.student_answer = student_answer
         self.n = n
         self.temperature = temperature
-        self.sbert_model = SentenceTransformer('stsb-roberta-large')
+        self.sbert_model = self.cache_model('stsb-roberta-large')
+    def cache_model(self, model_name):
+        if model_name not in self.cache:
+            nltk.download('punkt')
+            self.cache[model_name] = SentenceTransformer(model_name)
+        return self.cache[model_name]
 
     @staticmethod
     def get_environment_variable(variable_name):
