@@ -24,7 +24,7 @@ def show_sidebar():
 
 def get_user_input():
     prompt = st.text_area("**Enter the prompt:**", max_chars=1000)
-    student_answer = st.text_area("**Enter the answer:**", height=250)
+    student_answer = st.text_area("**Enter the answer:**", height=200)
     n = st.slider("**n:**", 1, 5, 3, 1)
     temperature = st.slider("**Temperature:**", 0.0, 1.0, 0.5, 0.1)
     return prompt, student_answer, n, temperature
@@ -41,7 +41,11 @@ def check_plagiarism(prompt, student_answer, n, temperature):
         return st.warning("Please enter an answer with at least 250 characters.")
     with st.spinner("Processing…"):
         detector = PlagiarismDetector(prompt, student_answer, n, temperature)
-        results = detector.check_plagiarism()
+        try:
+            generated_answers = detector.generate_answers()
+        except Exception as e:
+            return st.error(e)
+        results = detector.check_plagiarism(generated_answers)
         st.header("Similarity Results:")
         i = 1
         avg_overall_similarity = 0

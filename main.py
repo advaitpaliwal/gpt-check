@@ -4,9 +4,12 @@ import nltk
 from nltk import word_tokenize
 from sentence_transformers import SentenceTransformer, util
 from dotenv import load_dotenv
+from openai.error import RateLimitError
+
 
 class PlagiarismDetector:
     cache = {}
+
     def __init__(self, prompt, student_answer, n, temperature):
         openai.api_key = self.get_environment_variable("openai_api_key")
         self.prompt = prompt
@@ -14,6 +17,7 @@ class PlagiarismDetector:
         self.n = n
         self.temperature = temperature
         self.sbert_model = self.cache_model('stsb-roberta-large')
+
     def cache_model(self, model_name):
         if model_name not in self.cache:
             nltk.download('punkt')
@@ -26,20 +30,23 @@ class PlagiarismDetector:
         return os.getenv(variable_name)
 
     def generate_answers(self):
-        cache_key = f"{self.prompt}|{self.n}|{self.temperature}"
-        if cache_key in self.cache:
-            return self.cache[cache_key]
+        try:
+            cache_key = f"{self.prompt}|{self.n}|{self.temperature}"
+            if cache_key in self.cache:
+                return self.cache[cache_key]
 
-        response = openai.Completion.create(
-            engine="text-davinci-003",
-            prompt=self.prompt,
-            max_tokens=1024,
-            temperature=self.temperature,
-            n=self.n,
-        )
-        generated_answers = [response_text["text"].strip() for response_text in response["choices"]]
-        self.cache[cache_key] = generated_answers
-        return generated_answers
+            response = openai.Completion.create(
+                engine="text-davinci-003",
+                prompt=self.prompt,
+                max_tokens=2048,
+                temperature=self.temperature,
+                n=self.n,
+            )
+            generated_answers = [response_text["text"].strip() for response_text in response["choices"]]
+            self.cache[cache_key] = generated_answers
+            return generated_answers
+        except RateLimitError:
+            raise "Rate limit exceeded. Please try again later."
 
     @staticmethod
     def get_embedding(text, model):
@@ -57,7 +64,8 @@ class PlagiarismDetector:
         jaccard_similarity = self.jaccard_similarity(answer, self.student_answer)
         overall_similarity = self.get_overall_similarity(cosine_similarity, jaccard_similarity)
 
-        self.cache[cache_key] = {"cosine": cosine_similarity, "jaccard": jaccard_similarity, "overall": overall_similarity}
+        self.cache[cache_key] = {"cosine": cosine_similarity, "jaccard": jaccard_similarity,
+                                 "overall": overall_similarity}
         return self.cache[cache_key]
 
     @staticmethod
@@ -72,10 +80,9 @@ class PlagiarismDetector:
     def get_overall_similarity(cosine_similarity, jaccard_similarity):
         return cosine_similarity * 0.7 + jaccard_similarity * 0.3
 
-    def check_plagiarism(self):
-        generated_answers = self.generate_answers()
+    def check_plagiarism(self, generated_answers):
         results = {}
         for answer in generated_answers:
-            similarity = self.get_similarity(answer)
+            similarity = self.get_similarity(answer.strip())
             results[answer] = similarity
         return {k: v for k, v in sorted(results.items(), key=lambda item: item[1]['overall'], reverse=True)}
