@@ -8,7 +8,6 @@ from openai.error import RateLimitError
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
 
-
 class PlagiarismDetector:
     nltk.download('punkt')
     nltk.download('stopwords')
@@ -68,7 +67,7 @@ class PlagiarismDetector:
 
     @staticmethod
     def get_overall_similarity(cosine_similarity, jaccard_similarity):
-        return cosine_similarity * 0.8 + jaccard_similarity * 0.2
+        return cosine_similarity * 0.9 + jaccard_similarity * 0.1
 
     def check_plagiarism(self, generated_answers):
         results = {}
