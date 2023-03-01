@@ -9,27 +9,17 @@ from nltk.corpus import stopwords
 
 
 class PlagiarismDetector:
-    cache = {}
+    nltk.download('punkt')
+    nltk.download('stopwords')
+
     def __init__(self, prompt, student_answer, n, temperature):
         openai.api_key = self.get_environment_variable("openai_api_key")
         self.prompt = prompt
         self.student_answer = student_answer
         self.n = n
         self.temperature = temperature
-        self.sbert_model = self.cache_model('stsb-roberta-large')
-        self.stop_words = self.cache_stopwords()
-
-    def cache_model(self, model_name):
-        if model_name not in self.cache:
-            nltk.download('punkt')
-            self.cache[model_name] = SentenceTransformer(model_name)
-        return self.cache[model_name]
-
-    def cache_stopwords(self):
-        if "stopwords" not in self.cache:
-            nltk.download('stopwords')
-            self.cache["stopwords"] = set(stopwords.words('english'))
-        return self.cache["stopwords"]
+        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        self.stop_words = set(stopwords.words('english'))
 
     @staticmethod
     def get_environment_variable(variable_name):
@@ -38,10 +28,6 @@ class PlagiarismDetector:
 
     def generate_answers(self):
         try:
-            cache_key = f"{self.prompt}|{self.n}|{self.temperature}"
-            if cache_key in self.cache:
-                return self.cache[cache_key]
-
             response = openai.Completion.create(
                 engine="text-davinci-003",
                 prompt=self.prompt,
@@ -50,32 +36,25 @@ class PlagiarismDetector:
                 n=self.n,
             )
             generated_answers = [response_text["text"].strip() for response_text in response["choices"]]
-            self.cache[cache_key] = generated_answers
             return generated_answers
         except RateLimitError:
             raise "Rate limit exceeded. Please try again later."
 
-    def get_embedding(self, text, model):
+    def get_embedding(self, text):
         tokens = [w.lower() for w in word_tokenize(text) if len(w) > 1 and w.lower() not in self.stop_words]
         filtered_text = ' '.join(tokens)
-        print(filtered_text)
-        return model.encode(filtered_text)
+        embedding = self.model.encode(filtered_text, convert_to_tensor=True)
+        return embedding
 
     def get_similarity(self, answer):
-        cache_key = f"{self.prompt}|{self.student_answer}|{answer}"
-        if cache_key in self.cache:
-            return self.cache[cache_key]
+        gpt_embedding = self.get_embedding(answer)
+        student_embedding = self.get_embedding(self.student_answer)
 
-        answer_sbert_embedding = self.get_embedding(answer, self.sbert_model)
-        query_sbert_embedding = self.get_embedding(self.student_answer, self.sbert_model)
-
-        cosine_similarity = util.pytorch_cos_sim(answer_sbert_embedding, query_sbert_embedding).item()
+        cosine_similarity = util.cos_sim(gpt_embedding, student_embedding).tolist()[0][0]
         jaccard_similarity = self.jaccard_similarity(answer, self.student_answer)
         overall_similarity = self.get_overall_similarity(cosine_similarity, jaccard_similarity)
-
-        self.cache[cache_key] = {"cosine": cosine_similarity, "jaccard": jaccard_similarity,
-                                 "overall": overall_similarity}
-        return self.cache[cache_key]
+        return {"cosine": cosine_similarity, "jaccard": jaccard_similarity,
+                "overall": overall_similarity}
 
     def jaccard_similarity(self, s1, s2):
         set1 = set(w.lower() for w in word_tokenize(s1) if len(w) > 1 and w.lower() not in self.stop_words)
@@ -86,7 +65,7 @@ class PlagiarismDetector:
 
     @staticmethod
     def get_overall_similarity(cosine_similarity, jaccard_similarity):
-        return cosine_similarity * 0.7 + jaccard_similarity * 0.3
+        return cosine_similarity * 0.8 + jaccard_similarity * 0.2
 
     def check_plagiarism(self, generated_answers):
         results = {}
