@@ -6,6 +6,7 @@ from sentence_transformers import SentenceTransformer, util
 from dotenv import load_dotenv
 from openai.error import RateLimitError
 from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
 
 
 class PlagiarismDetector:
@@ -19,7 +20,8 @@ class PlagiarismDetector:
         self.n = n
         self.temperature = temperature
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
-        self.stop_words = set(stopwords.words('english'))
+        self.stopwords = set(stopwords.words('english'))
+        self.stemmer = PorterStemmer()
 
     @staticmethod
     def get_environment_variable(variable_name):
@@ -41,7 +43,7 @@ class PlagiarismDetector:
             raise "Rate limit exceeded. Please try again later."
 
     def get_embedding(self, text):
-        tokens = [w.lower() for w in word_tokenize(text) if len(w) > 1 and w.lower() not in self.stop_words]
+        tokens = [w.lower() for w in word_tokenize(text) if len(w) > 1 and w.lower() not in self.stopwords]
         filtered_text = ' '.join(tokens)
         embedding = self.model.encode(filtered_text, convert_to_tensor=True)
         return embedding
@@ -49,7 +51,6 @@ class PlagiarismDetector:
     def get_similarity(self, answer):
         gpt_embedding = self.get_embedding(answer)
         student_embedding = self.get_embedding(self.student_answer)
-
         cosine_similarity = util.cos_sim(gpt_embedding, student_embedding).tolist()[0][0]
         jaccard_similarity = self.jaccard_similarity(answer, self.student_answer)
         overall_similarity = self.get_overall_similarity(cosine_similarity, jaccard_similarity)
@@ -57,8 +58,10 @@ class PlagiarismDetector:
                 "overall": overall_similarity}
 
     def jaccard_similarity(self, s1, s2):
-        set1 = set(w.lower() for w in word_tokenize(s1) if len(w) > 1 and w.lower() not in self.stop_words)
-        set2 = set(w.lower() for w in word_tokenize(s2) if len(w) > 1 and w.lower() not in self.stop_words)
+        set1 = set(
+            self.stemmer.stem(w.lower()) for w in word_tokenize(s1) if len(w) > 1 and w.lower() not in self.stopwords)
+        set2 = set(
+            self.stemmer.stem(w.lower()) for w in word_tokenize(s2) if len(w) > 1 and w.lower() not in self.stopwords)
         intersection = len(set1 & set2)
         union = len(set1 | set2)
         return intersection / union if union != 0 else 0
