@@ -12,6 +12,7 @@ class PlagiarismDetector:
     def __init__(self):
         nltk.download('punkt')
         nltk.download('stopwords')
+        nltk.download('wordnet')
         openai.api_key = self.get_environment_variable("openai_api_key")
         self.model = SentenceTransformer('all-MiniLM-L6-v2')
         self.stopwords = set(stopwords.words('english'))
