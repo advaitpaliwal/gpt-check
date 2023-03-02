@@ -132,6 +132,4 @@ dmypy.json
 
 *.csv
 
-flask
-main2.py
-test.py
+test/
