@@ -45,7 +45,7 @@ class PlagiarismDetector:
                 )
                 generated_answers = [response_text["text"].strip() for response_text in response["choices"]]
                 return generated_answers
-            except:
+            except BaseException:
                 raise "Rate limit exceeded. Please try again later."
 
     def get_tokens(self, text):

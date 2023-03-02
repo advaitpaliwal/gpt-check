@@ -41,7 +41,7 @@ def check_plagiarism(prompt, student_answer, n):
     with st.spinner("Processing request..."):
         try:
             generated_answers = st.session_state.detector.generate_answers(prompt, n)
-        except BaseException as e:
+        except Exception as e:
             st.error(e)
             st.stop()
         results = st.session_state.detector.check_plagiarism(generated_answers, student_answer)
