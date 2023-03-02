@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer, util
 from dotenv import load_dotenv
 from nltk.corpus import stopwords
 from nltk.stem import WordNetLemmatizer
-from openai.error import RateLimitError
+
 
 class PlagiarismDetector:
     def __init__(self):
@@ -28,7 +28,6 @@ class PlagiarismDetector:
             generated_answers = []
             for i in range(n):
                 response = openai.ChatCompletion.create(
-
                     model="gpt-3.5-turbo",
                     messages=[
                         {"role": "user", "content": prompt},
@@ -36,8 +35,18 @@ class PlagiarismDetector:
                 )
                 generated_answers.append(response["choices"][0]["message"]["content"])
             return generated_answers
-        except RateLimitError:
-            raise "Rate limit exceeded. Please try again later."
+        except:
+            try:
+                response = openai.Completion.create(
+                    engine="text-davinci-003",
+                    prompt=prompt,
+                    max_tokens=2048,
+                    n=n,
+                )
+                generated_answers = [response_text["text"].strip() for response_text in response["choices"]]
+                return generated_answers
+            except:
+                raise "Rate limit exceeded. Please try again later."
 
     def get_tokens(self, text):
         return [self.lemmatizer.lemmatize(w.lower()) for w in word_tokenize(text) if
